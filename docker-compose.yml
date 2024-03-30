@@ -15,8 +15,6 @@ x-spark-common: &spark-common
   networks:
     - vishal
 
-
-
 services:
   zookeeper:
     image: bitnami/zookeeper
