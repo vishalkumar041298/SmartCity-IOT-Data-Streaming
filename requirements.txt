@@ -1,0 +1,5 @@
+kafka-python==2.0.2
+py4j==0.10.9.7
+pyspark==3.5.1
+python-dotenv==1.0.1
+simplejson==3.19.2
