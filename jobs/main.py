@@ -8,8 +8,9 @@ from kafka import KafkaProducer
 from kafka.errors import KafkaError
 import constants
 
-# loadinf env variables from .env
+# loading env variables from .env
 load_dotenv()
+random.seed(42)
 
 LATITUDE_INCREMENT = (
     constants.BIRMINGHAM_COORDINATES.get('latitude') - constants.LONDON_COORDINATES.get('latitude')
@@ -23,7 +24,7 @@ LONGITUDE_INCREMENT = (
 vehicle_topic = os.getenv('VEHICLE_TOPIC')
 kafka_boostrap_servers = os.getenv('KAFKA_BOOTSTRAP_SERVERS')
 gps_topic = os.getenv('GPS_TOPIC')
-traffic_topic = os.getenv('TRAFFIC_TOPIC')
+traffic_camera_topic = os.getenv('TRAFFIC_CAMERA_TOPIC')
 emergency_topic = os.getenv('EMERGENCY_TOPIC')
 
 # start time and location
@@ -68,10 +69,69 @@ def generate_vehicle_data(vehicle_id: str) -> dict[str, Any]:
     )
 
 
+def generate_gps_data(vehicle_id: str, timestamp: str, vehicle_type='private') -> dict[str, Any]:
+    return dict(
+        id=uuid.uuid4(),
+        vehicle_id=vehicle_id,
+        timestamp=timestamp,
+        speed=random.uniform(0, 40), # km/h
+        direction='North-East',
+        vehicle_type=vehicle_type
+    )
+
+def generate_traffic_camera_data(vehicle_id: str, timestamp: str, location: tuple[float], camera_id: str) -> dict[str, Any]:
+    return dict(
+        id=uuid.uuid4(),
+        vehicle_id=vehicle_id,
+        camera_id=camera_id,
+        location=location,
+        timestamp=timestamp,
+        snapshot='Base64EncodedString'
+    )
+
+
+def generate_eid(vehicle_id: str, timestamp: str, location: tuple[float]) -> dict[str, Any]:
+    type_choices = ['Accident', 'Fire', 'Medical', 'Police', 'None']
+    status_choices = ['Active', 'Resolved']
+    return dict(
+        id=uuid.uuid4(),
+        vehicle_id=vehicle_id,
+        location=location,
+        timestamp=timestamp,
+        incident_id=uuid.uuid4(),
+        type=random.choice(type_choices),
+        status=random.choice(status_choices),
+        description='Description of the incident'
+    )
+
+
+def generate_weather_data(vehicle_id: str, timestamp: str, location: tuple[float]) -> dict[str, Any]:
+    choices = ['Sunny', 'Cloudy', 'Rainy', 'Snow']
+    return dict(
+        id=uuid.uuid4(),
+        vehicle_id=vehicle_id,
+        location=location,
+        timestamp=timestamp,
+        temperature=random.uniform(-5, 26),
+        weather_condition=random.choice(choices),
+        precipitation=random.uniform(0, 25),
+        wind_speed=random.uniform(0, 100),
+        humidity=random.randint(0, 100), # percentage
+        air_quality_index=random.uniform(0, 500)
+    )
+
+
 def simulate_journey(producer: KafkaProducer, vehicle_id: str) -> None:
     while True:
         vehicle_data = generate_vehicle_data(vehicle_id)
-        # gps_data = generate_gps_data(vehicle_id, vehicle_data['timestamp'])
+        gps_data = generate_gps_data(vehicle_id, vehicle_data['timestamp'])
+        traffic_camera_data = generate_traffic_camera_data(
+            vehicle_id, vehicle_data['timestamp'],
+            vehicle_data['location'], 'Canon-x1y3'
+        )
+        weather_data = generate_weather_data(vehicle_id, vehicle_data['timestamp'], vehicle_data['location'])
+        emergency_incident_data = generate_eid(vehicle_id, vehicle_data['timestamp'], vehicle_data['location'])
+        print(vehicle_data, gps_data, traffic_camera_data, weather_data, emergency_incident_data, end='\n')
         break
 
 
