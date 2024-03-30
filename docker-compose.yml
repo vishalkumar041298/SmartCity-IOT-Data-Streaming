@@ -1,0 +1,100 @@
+version: "3.1"
+
+x-spark-common: &spark-common
+  image: bitnami/spark:latest
+  volumes:
+    - ./jobs:/opt/bitnami/spark/jobs
+  command: bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+  depends_on:
+    - spark-master
+  environment:
+    SPARK_MODE: Worker
+    SPARK_WORKER_CORES: 2
+    SPARK_WORKER_MEMORY: 1g
+    SPARK_MASTER_URL: spark://spark-master:7077
+  networks:
+    - vishal
+
+
+
+services:
+  zookeeper:
+    image: bitnami/zookeeper
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo 'ruok' | nc localhost 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+    networks:
+      - vishal
+
+  broker:
+    image: bitnami/kafka
+    hostname: broker
+    container_name: broker
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    environment:
+      KAFKA_CFG_NODE_ID: 0
+      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      ALLOW_PLAINTEXT_LISTENER: yes
+      # KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      # KAFKA_CFG_PROCESS_ROLES: controller,broker
+      # KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT, PLAINTEXT_HOST:PLAINTEXT
+      # KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,EXTERNAL://localhost:9094
+      # KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      # KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@localhost:9093
+      # KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+      # KAFKA_METRIC_REPORTERS: io.confluentic.metrics.reporter.ConfluenticMetricsReporter
+      # KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # KAFKA_GROUP_INTIAL_REBALANCE_DELAY_MS: 0
+      # KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+      # KAFKA_CONFLUENT_BALANCER_REPLICATION_FACTOR: 1
+      # KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # KAFKA_TRANSACTION_STATE_REPLICATION_FACTOR: 1
+      # KAFKA_JMX_PORT: 9101
+      # KAFKA_JMX_HOSTNAME: localhost
+      # KAFKA_CONFLUENT_SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      # CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: broker:29092
+      # CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: 1
+      # CONFLUENT_METRICS_ENABLE: 'false'
+      # CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
+    healthcheck:
+      test: ["CMD", "bash", "-c", "nc -z localhost 9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vishal
+
+  spark-master:
+    image: bitnami/spark:latest
+    volumes:
+      - ./jobs:/opt/bitnami/spark/jobs
+    command: bin/spark-class org.apache.spark.deploy.master.Master
+    ports:
+      - "9090:8080"
+      - "7077:7077"
+    networks:
+      - vishal
+  
+  spark-worker-1:
+    <<: *spark-common
+  
+  spark-worker-2:
+    <<: *spark-common
+  
+
+networks:
+  vishal:
