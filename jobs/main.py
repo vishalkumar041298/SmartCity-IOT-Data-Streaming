@@ -1,6 +1,9 @@
 import datetime
 import os
 import random
+import time
+import json
+# import simplejson as json
 from typing import Any
 import uuid
 from dotenv import load_dotenv
@@ -25,6 +28,7 @@ vehicle_topic = os.getenv('VEHICLE_TOPIC')
 kafka_boostrap_servers = os.getenv('KAFKA_BOOTSTRAP_SERVERS')
 gps_topic = os.getenv('GPS_TOPIC')
 traffic_camera_topic = os.getenv('TRAFFIC_CAMERA_TOPIC')
+weather_topic = os.getenv('WEATHER_TOPIC')
 emergency_topic = os.getenv('EMERGENCY_TOPIC')
 
 # start time and location
@@ -121,6 +125,36 @@ def generate_weather_data(vehicle_id: str, timestamp: str, location: tuple[float
     )
 
 
+def json_serializer(obj):
+    if isinstance(obj, uuid.UUID):
+        return str(obj)
+    raise TypeError(f'Object of type {obj.__class__.__name__} is not json serializable')
+
+
+def deliver_report(err, msg):
+    if err is not None:
+        print(f'Message delivery failed: {err}')
+    else:
+        print(f'Message delivered to topic: {msg.topic()}, partition: {msg.parition()}, offset: {msg.offset()}')
+
+
+def produce_data_to_kafka(producer: KafkaProducer, topic: str, data: dict[str, Any]):
+    print(f"sending data to topic: {topic}")
+    future = producer.send(
+        topic, key=str(data['id']).encode('utf-8'),
+        value=json.dumps(data, default=json_serializer).encode('utf-8'),
+
+    )
+    print('producer sent')
+    producer.flush()
+    try:
+        record_metadata = future.get(timeout=40)
+        print(f'Message sent to topic: {record_metadata.topic}, partition: {record_metadata.partition}, offset: {record_metadata.offset}')
+    except Exception as e:
+        print(f'Failed to send message: {e}')
+    
+
+
 def simulate_journey(producer: KafkaProducer, vehicle_id: str) -> None:
     while True:
         vehicle_data = generate_vehicle_data(vehicle_id)
@@ -131,14 +165,23 @@ def simulate_journey(producer: KafkaProducer, vehicle_id: str) -> None:
         )
         weather_data = generate_weather_data(vehicle_id, vehicle_data['timestamp'], vehicle_data['location'])
         emergency_incident_data = generate_eid(vehicle_id, vehicle_data['timestamp'], vehicle_data['location'])
-        print(vehicle_data, gps_data, traffic_camera_data, weather_data, emergency_incident_data, end='\n')
-        break
+        
+        if vehicle_data['location'][0] >= constants.BIRMINGHAM_COORDINATES['latitude'] \
+                and vehicle_data['location'][1] <= constants.BIRMINGHAM_COORDINATES['longitude']:
+            print('Vehicle has reached Birmingham. Simulation ending.....')
+            break
+
+        produce_data_to_kafka(producer, vehicle_topic, vehicle_data)
+        produce_data_to_kafka(producer, gps_topic, gps_data)
+        produce_data_to_kafka(producer, traffic_camera_topic, traffic_camera_data)
+        produce_data_to_kafka(producer, weather_topic, weather_data)
+        produce_data_to_kafka(producer, emergency_topic, emergency_incident_data)
+        time.sleep(5)
 
 
 if __name__ == "__main__":
     # if kafka in cloud we need to provide config for username, password and if needed schema registry as well
-    producer = None
-    # producer = KafkaProducer(bootstrap_servers=kafka_boostrap_servers)
+    producer = KafkaProducer(bootstrap_servers=kafka_boostrap_servers, acks='all')
 
 
     try:
@@ -148,5 +191,3 @@ if __name__ == "__main__":
         print("Failed to send messages:", error)
     except KeyboardInterrupt:
         print('Simulation is ended by user')
-    except Exception as error:
-        print('Unexpected error occurred: ', error)

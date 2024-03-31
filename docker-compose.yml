@@ -32,30 +32,39 @@ services:
     networks:
       - vishal
 
-  broker:
-    image: bitnami/kafka
-    hostname: broker
-    container_name: broker
+  kafka:
+    image: bitnami/kafka:3
+    hostname: kafka
+    container_name: kafka
     depends_on:
       zookeeper:
         condition: service_healthy
     ports:
+      - "29092:29092"
       - "9092:9092"
-      - "9094:9094"
     environment:
-      KAFKA_CFG_NODE_ID: 0
-      KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
-      ALLOW_PLAINTEXT_LISTENER: yes
-      # KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CLIENT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_LISTENERS=CLIENT://:9092,EXTERNAL://:29092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=CLIENT://localhost:9092,EXTERNAL://localhost:29092
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=CLIENT
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+
+      # KAFKA_CFG_NODE_ID: 0
+      # KAFKA_CFG_ZOOKEEPER_CONNECT: zookeeper:2181
+      # ALLOW_PLAINTEXT_LISTENER: yes
+      # KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: true
+      # KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       # KAFKA_CFG_PROCESS_ROLES: controller,broker
       # KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT, PLAINTEXT_HOST:PLAINTEXT
-      # KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,EXTERNAL://localhost:9094
-      # KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      # KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://locahost:29092,PLAINTEXT_HOST://localhost:9092
+      # KAFKA_CFG_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT://localhost:9093
       # KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 0@localhost:9093
       # KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
       # KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
       # KAFKA_METRIC_REPORTERS: io.confluentic.metrics.reporter.ConfluenticMetricsReporter
-      # KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      # KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       # KAFKA_GROUP_INTIAL_REBALANCE_DELAY_MS: 0
       # KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
       # KAFKA_CONFLUENT_BALANCER_REPLICATION_FACTOR: 1
@@ -86,13 +95,12 @@ services:
       - "7077:7077"
     networks:
       - vishal
-  
+
   spark-worker-1:
     <<: *spark-common
-  
+
   spark-worker-2:
     <<: *spark-common
-  
 
 networks:
   vishal:
