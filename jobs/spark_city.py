@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
 import spark_schema
-from config import aws_config
+import config
 
 
 def main():
@@ -11,8 +11,8 @@ def main():
                 'org.apache.hadoop:hadoop-aws:3.3.1,'
                 'com.amazonaws:aws-java-sdk:1.11.469')\
         .config('spark.hadoop.fs.s3a.impl', 'org.apache.hadoop.fs.s3a.S3AFileSystem')\
-        .config('spark.hadoop.fs.s3a.access.key', aws_config.get('access_key'))\
-        .config('spark.hadoop.fs.s3a.secret.key', aws_config.get('secret_key'))\
+        .config('spark.hadoop.fs.s3a.access.key', config.aws_config.get('access_key'))\
+        .config('spark.hadoop.fs.s3a.secret.key', config.aws_config.get('secret_key'))\
         .config('spark.hadoop.fs.s3a.aws.credentials.provider', 'org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider')\
         .getOrCreate()
      # Adjust the log level to minimize the console output on executors
@@ -40,38 +40,38 @@ def main():
                .start()
             )
 
-    vehicleDF = read_kafka_topic('vehicle_data', spark_schema.vehicleSchema).alias('vehicle')
-    gpsDF = read_kafka_topic('gps_data', spark_schema.gpsSchema).alias('gps')
-    trafficCameraDF = read_kafka_topic('traffic_data', spark_schema.trafficSchema).alias('traffic')
-    weatherDF = read_kafka_topic('weather_data', spark_schema.weatherSchema).alias('weather')
-    emergencyDF = read_kafka_topic('emergency_data', spark_schema.emergencySchema).alias('emergency')
+    vehicleDF = read_kafka_topic(config.VEHICLE_TOPIC, spark_schema.vehicleSchema).alias('vehicle')
+    gpsDF = read_kafka_topic(config.GPS_TOPIC, spark_schema.gpsSchema).alias('gps')
+    trafficCameraDF = read_kafka_topic(config.TRAFFIC_CAMERA_TOPIC, spark_schema.trafficSchema).alias('traffic')
+    weatherDF = read_kafka_topic(config.WEATHER_TOPIC, spark_schema.weatherSchema).alias('weather')
+    emergencyDF = read_kafka_topic(config.EMERGENCY_TOPIC, spark_schema.emergencySchema).alias('emergency')
 
     # join all the dfs with id and timestamp
     # print(vehicleDF.count())
     query1 = stream_writer_to_s3(
         vehicleDF, 
-        's3a://spark-streaming-data-smartcity/checkpoints/vehicle_data',
-        's3a://spark-streaming-data-smartcity/data/vehicle_data'
+        f'{config.aws_config.get("s3_path")}/checkpoints/{config.VEHICLE_TOPIC}',
+        f'{config.aws_config.get("s3_path")}/data/{config.VEHICLE_TOPIC}'
     )
     query2 = stream_writer_to_s3(
         gpsDF,
-        's3a://spark-streaming-data-smartcity/checkpoints/gps_data',
-        's3a://spark-streaming-data-smartcity/data/gps_data'
+        f'{config.aws_config.get("s3_path")}/checkpoints/{config.GPS_TOPIC}',
+        f'{config.aws_config.get("s3_path")}/data/{config.GPS_TOPIC}'
     )
     query3 = stream_writer_to_s3(
         trafficCameraDF,
-        's3a//spark-streaming-data-smartcity/checkpoints/traffic_data',
-        's3a//spark-streaming-data-smartcity/data/traffic_data'
+        f'{config.aws_config.get("s3_path")}/checkpoints/{config.TRAFFIC_CAMERA_TOPIC}',
+        f'{config.aws_config.get("s3_path")}/data/{config.TRAFFIC_CAMERA_TOPIC}'
     )
     query4 = stream_writer_to_s3(
         weatherDF,
-        's3a//spark-streaming-data-smartcity/checkpoints/weather_data',
-        's3a//spark-streaming-data-smartcity/data/weather_data'
+        f'{config.aws_config.get("s3_path")}/checkpoints/{config.WEATHER_TOPIC}',
+        f'{config.aws_config.get("s3_path")}/data/{config.WEATHER_TOPIC}'
     )
     query5 = stream_writer_to_s3(
         emergencyDF,
-        's3a//spark-streaming-data-smartcity/checkpoints/emergency_data',
-        's3a//spark-streaming-data-smartcity/data/emergency_data'
+        f'{config.aws_config.get("s3_path")}/checkpoints/{config.EMERGENCY_TOPIC}',
+        f'{config.aws_config.get("s3_path")}/data/{config.EMERGENCY_TOPIC}'
     )
 
     query5.awaitTermination()

@@ -6,13 +6,13 @@ import json
 # import simplejson as json
 from typing import Any
 import uuid
-from dotenv import load_dotenv
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
 import constants
+import config
 
 # loading env variables from .env
-load_dotenv()
+
 random.seed(42)
 
 LATITUDE_INCREMENT = (
@@ -23,14 +23,8 @@ LONGITUDE_INCREMENT = (
     constants.BIRMINGHAM_COORDINATES.get('longitude') - constants.LONDON_COORDINATES.get('longitude')
 ) / 100
 
-# Getting os environments
-vehicle_topic = os.getenv('VEHICLE_TOPIC')
-kafka_boostrap_servers = os.getenv('KAFKA_BOOTSTRAP_SERVERS')
-gps_topic = os.getenv('GPS_TOPIC')
-traffic_camera_topic = os.getenv('TRAFFIC_CAMERA_TOPIC')
-weather_topic = os.getenv('WEATHER_TOPIC')
-emergency_topic = os.getenv('EMERGENCY_TOPIC')
 
+kafka_boostrap_servers = config.KAFKA_BOOTSTRAP_SERVERS
 # start time and location
 start_time = datetime.datetime.now()
 start_location = constants.LONDON_COORDINATES.copy()
@@ -170,12 +164,11 @@ def simulate_journey(producer: KafkaProducer, vehicle_id: str) -> None:
                 and vehicle_data['location'][1] <= constants.BIRMINGHAM_COORDINATES['longitude']:
             print('Vehicle has reached Birmingham. Simulation ending.....')
             break
-
-        produce_data_to_kafka(producer, vehicle_topic, vehicle_data)
-        produce_data_to_kafka(producer, gps_topic, gps_data)
-        produce_data_to_kafka(producer, traffic_camera_topic, traffic_camera_data)
-        produce_data_to_kafka(producer, weather_topic, weather_data)
-        produce_data_to_kafka(producer, emergency_topic, emergency_incident_data)
+        produce_data_to_kafka(producer, config.VEHICLE_TOPIC, vehicle_data)
+        produce_data_to_kafka(producer, config.GPS_TOPIC, gps_data)
+        produce_data_to_kafka(producer, config.TRAFFIC_CAMERA_TOPIC, traffic_camera_data)
+        produce_data_to_kafka(producer, config.WEATHER_TOPIC, weather_data)
+        produce_data_to_kafka(producer, config.EMERGENCY_TOPIC, emergency_incident_data)
         time.sleep(2)
 
 
