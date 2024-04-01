@@ -16,11 +16,11 @@ Architecture is shown in sysarch.png
 
 ## important commands
 
-## To stream the data to Kafka
+### To stream the data to Kafka
 ``` python jobs/main.py ```
 
 
-### Update AWS credentials in config.py
+##### Update AWS credentials in config.py
 
 ## To read data from kafka stream and push to S3
 
@@ -35,12 +35,7 @@ You can use `redshift` to run complex queries in the data.
 
 
 
-
-
-
-
-
-Notes for myself
+# Notes
 
 --num-executors - number of executores (which is just JVM container inside node) to be created across all nodes
 --executor-cores - number tasks thats can run in parallel (sometimes even we give give 6 it may run 3 at parallel other 3 as idle to wait to complete)
