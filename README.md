@@ -35,11 +35,6 @@ You can use `redshift` to run complex queries in the data.
 
 
 
-
-
-
-
-
 # Notes
 
 --num-executors - number of executores (which is just JVM container inside node) to be created across all nodes
