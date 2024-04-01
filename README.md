@@ -1,9 +1,42 @@
-docker exec -it smartcity-spark-master-1 spark-submit --master spark://spark-master:7077 --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2,org.apache.hadoop:hadoop-aws:3.3.1,com.amazonaws:aws-java-sdk:1.11.469 jobs/spark_city.py
+# Data Streaming from IOT devices Using Kafka and Spark
+
+Gathers all data from IOT devices that sent in kafka and Spark reads the stream and stream it to S3.
 
 
-After uploading to S3, create crawler to crawl s3 that creates data catalog in glue
+## Tech Stack
 
-you can use redshift to run complex queries in the data.
+* Kafka
+* SPARK STREAMING
+* AWS GLUE
+* AWS REDSHIFT
+* Docker
+
+Architecture is shown in sysarch.png
+
+
+## important commands
+
+## To stream the data to Kafka
+``` python jobs/main.py ```
+
+
+### Update AWS credentials in config.py
+
+## To read data from kafka stream and push to S3
+
+``` 
+docker exec -it smartcity-spark-master-1 spark-submit --master spark://spark-master:7077 --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.1.2,org.apache.hadoop:hadoop-aws:3.3.1,com.amazonaws:aws-java-sdk:1.11.469 jobs/spark_city.py 
+```
+
+### Post Uploading 
+Create crawler un `AWS Glue` to crawl s3 that creates data catalog in AWS glue
+
+You can use `redshift` to run complex queries in the data.
+
+
+
+
+
 
 
 
