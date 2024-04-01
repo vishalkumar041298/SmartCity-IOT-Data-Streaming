@@ -1,6 +1,6 @@
 # Data Streaming from IOT devices Using Kafka and Spark
 
-Gathers all data from IOT devices that sent in kafka and Spark reads the stream and stream it to S3.
+Gathers all data from IOT devices that sent in kafka and Spark reads the stream, do some process and stream it to S3.
 
 
 ## Tech Stack
